@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ajjay’s Google Assist</title>
+<style>
+:root{--card:rgba(255,255,255,.9);--tx:#1f1f1f;--mu:#5f6368;--ac:#1a73e8;--me:#1a73e8;--me-tx:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:rgba(32,33,36,.9);--tx:#f1f3f4;--mu:#9aa0a6;--ac:#8ab4f8;--me:#8ab4f8;--me-tx:#10243f}}
+:root[data-theme="dark"]{--card:rgba(32,33,36,.9);--tx:#f1f3f4;--mu:#9aa0a6;--ac:#8ab4f8;--me:#8ab4f8;--me-tx:#10243f}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;background:#e8f0fe}
+#bgl{position:fixed;inset:0;z-index:-1;transition:background .4s}
+#bgl.an{background-size:400% 400%!important;animation:mv 12s ease infinite}@keyframes mv{50%{background-position:100% 50%}}
+header{display:flex;align-items:center;gap:8px;padding:10px 14px}
+h1{font-size:17px;margin:0;flex:1;min-width:0}h1 small{display:block;font-weight:400;font-size:12px;color:var(--mu)}
+button{font:inherit;cursor:pointer;border:0;color:var(--tx)}
+.ib{background:var(--card);border-radius:50%;width:40px;height:40px;font-size:18px;flex:none}
+#chat{flex:1;overflow-y:auto;padding:8px 16px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:86%;padding:10px 14px;border-radius:18px;background:var(--card);white-space:pre-wrap;line-height:1.45;font-size:15px}
+.m.me{align-self:flex-end;background:var(--me);color:var(--me-tx)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 8px}
+.chip{background:var(--card);border-radius:999px;padding:8px 14px;font-size:13px;white-space:nowrap}
+.act{display:inline-block;margin-top:8px;background:var(--ac);color:var(--me-tx);padding:8px 14px;border-radius:999px;text-decoration:none;font-size:14px}
+form{display:flex;gap:8px;padding:8px 16px 12px}
+input[type=text]{flex:1;min-width:0;border:0;border-radius:999px;padding:12px 16px;font:inherit;background:var(--card);color:var(--tx);outline:none}
+.send{background:var(--ac);color:var(--me-tx);border-radius:50%;width:44px;height:44px;font-size:18px;flex:none}
+#panel{display:none;padding:0 16px 8px}#panel.on{display:block}
+.box{background:var(--card);border-radius:16px;padding:12px;font-size:14px}
+.sw{display:flex;gap:10px;overflow-x:auto;margin-top:8px;padding-bottom:4px}
+.sw button{background:none;font-size:11px;text-align:center;flex:none;width:68px}
+.sw i{display:block;width:68px;height:52px;border-radius:12px;border:2px solid var(--card);margin-bottom:3px}
+#rate{text-align:center;padding:2px 16px 6px;font-size:13px;color:var(--mu)}
+#rate button{background:none;font-size:24px;padding:0 2px;filter:grayscale(1);opacity:.5}#rate button.on{filter:none;opacity:1}
+#ob{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#ff6ec4,#7873f5,#4ade80,#facc15);background-size:400% 400%;animation:mv 10s ease infinite}
+#ob .box{width:100%;max-width:360px;text-align:center;padding:20px;color:#1f1f1f;background:rgba(255,255,255,.94)}
+#ob h2{margin:0 0 4px;font-size:20px}#ob p{margin:0 0 14px;color:#5f6368}
+#ob button.o,#ob input{display:block;width:100%;margin:8px 0;padding:13px;border-radius:14px;font-size:16px;border:0;background:#e8f0fe;color:#1f1f1f}
+#ob button.p{background:#1a73e8;color:#fff}
+</style></head><body>
+<div id="bgl"></div>
+<div id="ob"><div class="box" id="obx"></div></div>
+<header><h1>Ajjay’s Google Assist<small id="sub"></small></h1>
+<button class="ib" id="vo" aria-label="Read answers aloud">🎤</button><button class="ib" id="bgb" aria-label="Background">🎨</button><button class="ib" id="ac" aria-label="Choose account">👤</button></header>
+<div id="panel"><div class="box"><span id="pt"></span><div class="sw" id="sw"></div></div></div>
+<div id="chat"></div>
+<div class="chips" id="chips"></div>
+<div id="rate"><span id="stars"></span> <span id="rt"></span></div>
+<form id="f"><button type="button" class="ib" id="mic" aria-label="Ask by voice">🎙️</button><button type="button" class="ib" id="ph" aria-label="Add photo">🖼️</button><input type="file" id="fi" accept="image/*" hidden><input type="text" id="q" autocomplete="off"><button class="send" aria-label="Send">➤</button></form>
+<script>
+const $=id=>document.getElementById(id),chat=$('chat'),q=$('q');
+let accs=[],cur=null,talk=true,voice=false,img=null,ed={};const hist=[];
+try{accs=JSON.parse(localStorage.getItem('aj_acc')||'[]')}catch(_){}
+const save=()=>{try{localStorage.setItem('aj_acc',JSON.stringify(accs))}catch(_){}};
+const T=(en,ta)=>cur&&cur.ta?ta:en;
+function svg(a,b,t,c1,c2){const s=`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="300" height="300" fill="url(#g)"/><text x="150" y="150" font-family="Arial Black,Impact,sans-serif" font-size="92" font-weight="900" text-anchor="middle" fill="${c1}" opacity=".3">${t}</text><text x="150" y="270" font-size="60" text-anchor="middle" opacity=".6">${c2}</text></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(s)}") 0 0/300px 300px`}
+const P={
+aurora:{n:'Aurora',css:'linear-gradient(120deg,#ff6ec4,#7873f5,#4ade80,#facc15,#ff6ec4)',an:1},
+sunset:{n:'Sunset',css:'linear-gradient(160deg,#ff9a9e,#fad0c4,#fbc2eb,#a6c1ee)'},
+ocean:{n:'Ocean',css:'linear-gradient(160deg,#00c6ff,#0072ff,#00d2a0)'},
+candy:{n:'Candy',css:'linear-gradient(135deg,#f093fb,#f5576c,#ffd86f,#f093fb)',an:1},
+galaxy:{n:'Galaxy',css:'radial-gradient(2px 2px at 20% 30%,#fff,transparent),radial-gradient(2px 2px at 70% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 40% 80%,#fff,transparent),radial-gradient(2px 2px at 85% 20%,#fff,transparent),linear-gradient(160deg,#0f0c29,#302b63,#24243e)',dark:1},
+confetti:{n:'Confetti',css:'radial-gradient(circle,#ff595e 4px,transparent 5px) 0 0/70px 70px,radial-gradient(circle,#ffca3a 4px,transparent 5px) 35px 20px/70px 70px,radial-gradient(circle,#8ac926 4px,transparent 5px) 10px 45px/70px 70px,radial-gradient(circle,#1982c4 4px,transparent 5px) 50px 55px/70px 70px,#fff8e7'},
+cr7:{n:'⚽ CR7',css:svg('#c8102e','#006600','CR7','#ffffff','⚽')},
+six7:{n:'6-7',css:svg('#7b2ff7','#f9d423','6 7','#ffffff','🔥')}};
+function bg(id,keep){const p=P[id];if(!p)return;const b=$('bgl');b.style.background=p.css;b.className=p.an?'an':'';document.documentElement.dataset.theme=p.dark?'dark':'light';if(cur&&!keep){cur.bg=id;save()}}
+Object.keys(P).forEach(id=>{const b=document.createElement('button');b.innerHTML='<i style="background:'+P[id].css.replace(/"/g,"'")+';background-size:'+(P[id].css.startsWith('url')?'cover':'auto')+'"></i>'+P[id].n;b.onclick=()=>{bg(id);add(T('Done! ','சரி! ')+P[id].n+' 🎨')};$('sw').appendChild(b)});
+$('bgb').onclick=()=>{$('pt').textContent=T('What background do you need? Tap one 🎨','உங்களுக்கு என்ன பின்னணி வேண்டும்? ஒன்றைத் தொடவும் 🎨');$('panel').classList.toggle('on')};
+function add(t,me){const d=document.createElement('div');d.className='m'+(me?' me':'');d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+function link(d,l,h){const a=document.createElement('a');a.className='act';a.textContent=l;a.href=h;a.target='_blank';a.rel='noopener';d.appendChild(document.createElement('br'));d.appendChild(a)}
+let VO=[],warned=0;function lv(){try{VO=speechSynthesis.getVoices()}catch(_){}}lv();try{speechSynthesis.onvoiceschanged=lv}catch(_){}
+function speak(t){if(!talk)return;try{const x=t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/[*_#`]/g,'').replace(/https?:\/\/\S+/g,'').trim();if(!x)return;const l=/[\u0B80-\u0BFF]/.test(x)?'ta-IN':'en-IN';lv();const v=VO.find(o=>o.lang.replace('_','-').toLowerCase()===l.toLowerCase())||VO.find(o=>o.lang.toLowerCase().startsWith(l.slice(0,2)));speechSynthesis.cancel();speechSynthesis.resume();const f={s:0};(x.match(/[^.!?।]+[.!?।]*/g)||[x]).forEach(p=>{const u=new SpeechSynthesisUtterance(p.trim());if(v){u.voice=v;u.lang=v.lang}else u.lang=l;u.rate=.95;u.onstart=()=>{f.s=1};speechSynthesis.speak(u)});setTimeout(()=>{if(!f.s&&!warned){warned=1;add(T('I can’t speak on this device. Please check your volume and silent mode 🔊','இந்த சாதனத்தில் பேச முடியவில்லை. ஒலி அளவு மற்றும் சைலண்ட் மோடை சரிபார்க்கவும் 🔊'))}},2500)}catch(_){}}
+$('vo').onclick=()=>{talk=!talk;$('vo').textContent=talk?'🎤':'🔇';if(!talk){try{speechSynthesis.cancel()}catch(_){}}else speak(T('Voice is on','குரல் இயக்கப்பட்டது'))};
+// accounts
+function ob(h){$('obx').innerHTML=h}
+function showAcc(){try{speechSynthesis.cancel()}catch(_){}$('ob').style.display='flex';const x=$('obx');x.innerHTML='<h2>Choose account</h2><p>Who is using Ajjay’s Google Assist?</p>';
+accs.forEach(a=>{const b=document.createElement('button');b.className='o';b.textContent='👤 '+a.name;b.onclick=()=>start(a,false);x.appendChild(b)});
+const i=document.createElement('input');i.placeholder='New account name';i.maxLength=20;x.appendChild(i);
+const n=document.createElement('button');n.className='o p';n.textContent='＋ Add new account';n.onclick=()=>{const nm=i.value.trim()||'Guest '+(accs.length+1);showLang({name:nm,ta:false,bg:'aurora'})};x.appendChild(n)}
+function showLang(a){const x=$('obx');x.innerHTML='<h2>Hi '+'</h2><p>Choose your language<br>மொழியைத் தேர்ந்தெடுக்கவும்</p>';x.firstChild.textContent='Hi '+a.name+' 👋';
+[['English',false],['தமிழ் (Tamil)',true]].forEach(([l,v])=>{const b=document.createElement('button');b.className='o p';b.textContent=l;b.onclick=()=>{a.ta=v;accs.push(a);save();start(a,true)};x.appendChild(b)})}
+function start(a,isNew){cur=a;$('ob').style.display='none';chat.innerHTML='';hist.length=0;img=null;ed={};bg(a.bg||'aurora',true);
+$('sub').textContent='👤 '+a.name;q.placeholder=T('Ask anything…','எதையும் கேளுங்கள்…');
+add(T('Hello '+a.name+'! 😊 Ask me anything, play a Tamil song, find a movie, or edit a photo with 🖼️.','வணக்கம் '+a.name+'! 😊 எதையும் கேளுங்கள், தமிழ் பாடல், திரைப்படம், அல்லது 🖼️ மூலம் படம் திருத்தலாம்.'));
+if(isNew){const m=T('What background do you need? Pick a demo below 🎨 Want a CR7 ⚽ or 6-7 🔥 background? Tap it!','உங்களுக்கு என்ன பின்னணி வேண்டும்? கீழே ஒன்றைத் தேர்ந்தெடுக்கவும் 🎨 CR7 ⚽ அல்லது 6-7 🔥 வேண்டுமா? தொடவும்!');add(m);$('pt').textContent=T('Demo backgrounds','மாதிரி பின்னணிகள்');$('panel').classList.add('on');speak(m)}
+$('chips').innerHTML='';[[T('🎵 Play a Tamil song','🎵 தமிழ் பாடல்'),'Play a Tamil song'],[T('🎬 Suggest a movie','🎬 திரைப்படம்'),'Suggest a good movie'],['➕ 56 plus 76','56 plus 76'],['🧹 Clear chat','clear chat'],[T('🎨 CR7 background','🎨 CR7 பின்னணி'),'change background to CR7']].forEach(([l,t])=>{const c=document.createElement('button');c.className='chip';c.textContent=l;c.onclick=()=>{q.value=t;send()};$('chips').appendChild(c)})}
+$('ac').onclick=showAcc;
+// mic
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition,mic=$('mic');
+let arm=false,tm=null,hint=false;
+function dict(){arm=true;q.focus();if(hint)return;hint=true;add(T('The microphone can’t listen inside this page. Tap the 🎤 on your keyboard and speak. I’ll send it for you.','இந்தப் பக்கத்தில் மைக் வேலை செய்யாது. கீபோர்டில் உள்ள 🎤 தொட்டு பேசுங்கள், நான் அனுப்புகிறேன்.'))}
+q.addEventListener('input',()=>{if(!arm)return;clearTimeout(tm);tm=setTimeout(()=>{if(q.value.trim()){arm=false;send()}},2500)});
+let lis=false;function listen(){if(lis)return;lis=true;try{const r=new SR();r.lang=cur&&cur.ta?'ta-IN':'en-IN';mic.textContent='🔴';r.onresult=e=>{arm=false;q.value=e.results[0][0].transcript;send()};r.onerror=()=>dict();r.onend=()=>{lis=false;mic.textContent='🎙️'};r.start()}catch(_){lis=false;mic.textContent='🎙️';dict()}}
+mic.onclick=()=>{const m=T('What do you want?','உங்களுக்கு என்ன வேண்டும்?');add(m);try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(m);u.lang=cur&&cur.ta?'ta-IN':'en-IN';if(SR){u.onend=listen;u.onerror=listen;setTimeout(listen,3000)}speechSynthesis.speak(u)}catch(_){if(SR)listen()}if(!SR)dict()};
+// photo
+const fi=$('fi');$('ph').onclick=()=>fi.click();
+let base=null,cv=null;
+fi.onchange=()=>{const f=fi.files[0];if(!f)return;const im=new Image();im.onload=()=>{const sc=Math.min(1,1000/Math.max(im.naturalWidth,im.naturalHeight));base=document.createElement('canvas');base.width=Math.round(im.naturalWidth*sc);base.height=Math.round(im.naturalHeight*sc);base.getContext('2d').drawImage(im,0,0,base.width,base.height);ed={};const d=add(T('Got your photo! 📸 Tell me what to change: colors, brightness, zoom, text, stickers, border…','படம் கிடைத்தது! 📸 நிறம், பிரகாசம், ஜூம், எழுத்து, ஸ்டிக்கர்… என்ன மாற்ற வேண்டும்?'));cv=document.createElement('canvas');cv.style.cssText='display:block;max-width:100%;max-height:300px;border-radius:12px;margin-top:8px';d.appendChild(cv);render();img=base;chat.scrollTop=chat.scrollHeight};im.src=URL.createObjectURL(f)};
+function render(){const e=ed,z=Math.max(1,e.zoom||1),r=((e.rotate||0)%360+360)%360,sw=r%180!==0,W=sw?base.height:base.width,H=sw?base.width:base.height;cv.width=W;cv.height=H;const x=cv.getContext('2d');
+x.save();x.translate(W/2,H/2);x.rotate(r*Math.PI/180);x.scale((e.flip?-1:1)*z,z);x.drawImage(base,-base.width/2,-base.height/2);x.restore();
+if(e.blur>0){const k=1+e.blur,t=document.createElement('canvas');t.width=Math.max(1,W/k|0);t.height=Math.max(1,H/k|0);t.getContext('2d').drawImage(cv,0,0,t.width,t.height);x.imageSmoothingEnabled=true;x.drawImage(t,0,0,W,H)}
+const D=x.getImageData(0,0,W,H),p=D.data,b=e.brightness??1,c=e.contrast??1,s=e.saturate??1,g=e.grayscale||0,se=e.sepia||0,iv=e.invert||0,h=(e.hue||0)*Math.PI/180,co=Math.cos(h),si=Math.sin(h);
+for(let i=0;i<p.length;i+=4){let R=p[i],G=p[i+1],B=p[i+2];
+if(h){const r2=R*(.213+co*.787-si*.213)+G*(.715-co*.715-si*.715)+B*(.072-co*.072+si*.928),g2=R*(.213-co*.213+si*.143)+G*(.715+co*.285+si*.14)+B*(.072-co*.072-si*.283),b2=R*(.213-co*.213-si*.787)+G*(.715-co*.715+si*.715)+B*(.072+co*.928+si*.072);R=r2;G=g2;B=b2}
+R*=b;G*=b;B*=b;R=(R-128)*c+128;G=(G-128)*c+128;B=(B-128)*c+128;
+const L=.299*R+.587*G+.114*B;R=L+(R-L)*s;G=L+(G-L)*s;B=L+(B-L)*s;
+if(g){R+=(L-R)*g;G+=(L-G)*g;B+=(L-B)*g}
+if(se){const a1=.393*R+.769*G+.189*B,a2=.349*R+.686*G+.168*B,a3=.272*R+.534*G+.131*B;R+=(a1-R)*se;G+=(a2-G)*se;B+=(a3-B)*se}
+if(iv){R+=(255-2*R)*iv;G+=(255-2*G)*iv;B+=(255-2*B)*iv}
+p[i]=R;p[i+1]=G;p[i+2]=B}
+x.putImageData(D,0,0);
+try{if(e.tint&&e.tint.color){x.globalAlpha=Math.min(.7,e.tint.alpha??.3);x.fillStyle=e.tint.color;x.fillRect(0,0,W,H);x.globalAlpha=1}
+if(e.vignette>0){const v=x.createRadialGradient(W/2,H/2,Math.min(W,H)*.25,W/2,H/2,Math.max(W,H)*.7);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,'+Math.min(.9,e.vignette)+')');x.fillStyle=v;x.fillRect(0,0,W,H)}
+x.textAlign='center';(e.stickers||[]).forEach(k=>{x.font=Math.round(W*(k.size||.15))+'px sans-serif';x.fillText(k.e,W*(k.x??.5),H*(k.y??.5))});
+if(e.text&&e.text.value){const fs=Math.round(W*.09);x.font='900 '+fs+'px Arial Black,Impact,sans-serif';x.lineWidth=fs/9;x.strokeStyle='#000';x.fillStyle=e.text.color||'#fff';const y=e.text.pos==='top'?fs*1.2:e.text.pos==='center'?H/2:H-fs*.6;x.strokeText(e.text.value,W/2,y,W*.95);x.fillText(e.text.value,W/2,y,W*.95)}
+if(e.border&&e.border.width>0){const w=e.border.width*W/400;x.strokeStyle=e.border.color||'#fff';x.lineWidth=w*2;x.strokeRect(0,0,W,H)}}catch(_){}}
+async function editPhoto(t,d){const s=await claude.use('sample');if(!s){d.textContent='Please open this page in Claude. 🙏';return}
+const r=await s.json('You edit a photo by choosing values. Current values: '+JSON.stringify(ed)+'. Request: "'+t+'". Return ONLY JSON with the FULL new values (keep current ones unless the request changes them; return {} to reset). Use only what the request needs: never add sepia, tint or hue unless the request asks for a color change. Keys: brightness 0.2-2, contrast 0.2-2, saturate 0-3, grayscale 0-1, sepia 0-1, blur 0-10, hue 0-360, invert 0-1, rotate (multiples of 90), flip (bool), zoom 1-3 (crops to the center), tint {color: CSS color, alpha 0-0.6}, vignette 0-0.8, border {color, width 0-40}, text {value, color, pos: "top"|"center"|"bottom"}, stickers [{e: emoji, x 0-1, y 0-1, size 0.05-0.3}], and message (one kind sentence in the user’s language saying what you did; if they ask to remove objects or backgrounds or add people, honestly say that is not possible here and do the closest thing).',{cache:false});
+const {message,...v}=r;ed=v;render();d.textContent=message||'Done! ✨';d.appendChild(cv);
+const a=document.createElement('button');a.className='act';a.textContent='⬇ Save photo';a.onclick=async()=>{const b=await new Promise(z=>cv.toBlob(z,'image/jpeg',.92));const dl=await claude.use('downloads');if(dl)try{await dl.save({filename:'edited-photo.jpg',data:b})}catch(_){}};d.appendChild(document.createElement('br'));d.appendChild(a);speak(message||'Done');chat.scrollTop=chat.scrollHeight}
+// helpers
+const KB=[[/cr ?7|ronaldo/i,'cr7'],[/6[\s-]?7|six seven|\b67\b/i,'six7'],[/aurora|rainbow/i,'aurora'],[/sunset|pink/i,'sunset'],[/ocean|blue|sea/i,'ocean'],[/candy|sweet/i,'candy'],[/galaxy|space|star|night|dark/i,'galaxy'],[/confetti|party/i,'confetti']];
+function calc(t){const m=t.match(/(-?\d+(?:\.\d+)?)\s*(plus|add|\+|minus|-|times|multiplied by|x|\*|into|divided by|\/)\s*(-?\d+(?:\.\d+)?)/i);if(!m)return null;const a=+m[1],b=+m[3],o=m[2].toLowerCase();let r,w;if(/^(plus|add|\+)$/.test(o)){r=a+b;w='plus'}else if(/^(minus|-)$/.test(o)){r=a-b;w='minus'}else if(/^(times|multiplied by|x|\*|into)$/.test(o)){r=a*b;w='times'}else{if(!b)return null;r=a/b;w='divided by'}return `${a} ${w} ${b} is equal to ${+r.toFixed(6)}`}
+async function send(e){e&&e.preventDefault();const t=q.value.trim();if(!t||!cur)return;q.value='';add(t,true);const say=voice;voice=false;
+try{speechSynthesis.speak(new SpeechSynthesisUtterance(''))}catch(_){}
+if(/\b(clear|delete|reset|erase|clean)\b.*\b(chat|conversation|messages|history)\b|சாட்.*(அழி|கிளியர்)|அழி.*சாட்/i.test(t)){chat.innerHTML='';hist.length=0;img=null;ed={};const m=T('Chat cleared! ✨ How can I help?','சாட் அழிக்கப்பட்டது! ✨ எப்படி உதவ வேண்டும்?');add(m);speak(m);return}
+const c=calc(t);if(c){const d=add(c+' ✅');speak(c);return}
+if(/background|wallpaper|theme|பின்னணி/i.test(t)){const k=KB.find(([r])=>r.test(t));if(k){bg(k[1]);const m=T('Done! '+P[k[1]].n+' background is on 🎨','சரி! '+P[k[1]].n+' பின்னணி போடப்பட்டது 🎨');add(m);speak(m);return}
+const d=add('🎨…');try{const s=await claude.use('sample');const r=await s.json('Create a beautiful, colorful CSS background for this request: "'+t+'". Return ONLY JSON {"css":"linear-gradient(...) or radial-gradient(...)","dark":false}. Use only gradients.',{cache:false});if(/^(linear|radial)-gradient\(/.test(r.css)){$('bgl').style.background=r.css;$('bgl').className='';document.documentElement.dataset.theme=r.dark?'dark':'light';d.textContent=T('Done! Here’s your new background 🎨','சரி! புதிய பின்னணி 🎨');speak(d.textContent);return}}catch(_){}d.textContent=T('Sorry, tap 🎨 to pick one of my backgrounds.','மன்னிக்கவும், 🎨 தொட்டு ஒரு பின்னணியை தேர்ந்தெடுக்கவும்.');return}
+if(img&&/\b(edit|bright|dark|black|white|gr[ae]y|warm|cool|sepia|blur|rotate|flip|mirror|vivid|colou?r|contrast|vintage|invert|filter|photo|picture|image|zoom|crop|text|caption|sticker|emoji|border|frame|vignette|tint|red|blue|green|yellow|purple|orange|pink|reset|undo|sharp|bigger|smaller)\b|படம்|போட்டோ/i.test(t)){const d=add('Editing… 🎨');try{await editPhoto(t,d)}catch(_){d.textContent='Sorry, that edit didn’t work. Please try again. 💙'}return}
+if(/\b(edit|enhance|retouch)\b.*\b(photo|picture|image|pic)\b/i.test(t)){const m=T('Sure! Tap 🖼️ to add your photo, then tell me what to change.','சரி! 🖼️ தொட்டு படத்தை சேர்க்கவும், பிறகு என்ன மாற்ற வேண்டும் என்று சொல்லுங்கள்.');add(m);speak(m);return}
+const song=/\b(song|play|music)\b|பாடல்|பாட்டு/i.test(t),d=add('Thinking… 💭');hist.push({role:'user',content:t});
+const SYS='You are Ajjay’s Google Assist, a warm, very kind, genuinely useful voice assistant blending Google Search, Google Assistant, Gemini, ChatGPT, Chrome and Siri. Your answers are spoken aloud, so write short natural spoken sentences, no markdown, no tables. Answer accurately; if unsure, say so. Default language: '+T('English','Tamil')+', but reply in the language the user writes in. For maths, answer as a sentence like “56 plus 76 is equal to 132”. For movies, suggest 3 well-regarded movies with one-line reasons in the language asked. For songs, name the song and artist, say a play link is shown below, then sing a short ORIGINAL 4-line verse in the requested language and mood (never real copyrighted lyrics).';
+try{const s=await claude.use('sample');if(!s){d.textContent='Please open this page in Claude to chat with me. 🙏';return}
+const r=await s([{role:'user',content:SYS+'\n\nConversation (latest last):\n'+hist.slice(-8).map(x=>x.role+': '+x.content).join('\n')}],{cache:false,onText:({text})=>{d.textContent=text;chat.scrollTop=chat.scrollHeight}});
+d.textContent=r.text;hist.push({role:'assistant',content:r.text});speak(r.text);
+if(song)link(d,'▶ Play on YouTube','https://www.youtube.com/results?search_query='+encodeURIComponent(t.replace(/\bplay\b/i,'')+' song'))}catch(err){d.textContent='Sorry, I couldn’t reach my brain just now. Please try again. 💙'}}
+$('f').addEventListener('submit',send);
+const st=$('stars');for(let i=1;i<=5;i++){const b=document.createElement('button');b.textContent='⭐';b.setAttribute('aria-label',i+' stars');b.onclick=()=>{[...st.children].forEach((c,j)=>c.classList.toggle('on',j<i));$('rt').textContent=i>=4?'Thank you so much! 💙':'Thanks! 🙏'};st.appendChild(b)}
+showAcc();
+</script></body></html>
